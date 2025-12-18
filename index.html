@@ -5,36 +5,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Merry Christmas</title>
 <style>
-    html,body{ margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#000; }
-    .scene{ position:relative; width:100vw; height:100vh; background:radial-gradient(circle at top,#001b33,#000); overflow:hidden; }
+    html,body{ margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#000; font-family:cursive; }
+    .scene{ position:relative; width:100vw; height:100vh; background:radial-gradient(circle at top,#001b33,#000); overflow:hidden; display:none; } /* 初始隐藏，点信封后显示 */
+    
+    /* 1. 信封开场仪式感 */
+    #envelope-wrapper {
+        position: fixed; inset: 0; background: #000; z-index: 100;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: opacity 1.5s ease;
+    }
+    .envelope { font-size: 80px; cursor: pointer; animation: floating 2s infinite ease-in-out; }
+    .envelope-tip { color: #fff; margin-top: 20px; font-size: 18px; letter-spacing: 2px; opacity: 0.8; }
+    @keyframes floating { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+    /* 2. 流星背景 */
+    .star {
+        position: absolute; background: white; border-radius: 50%; opacity: 0.3;
+    }
+    .meteor {
+        position: absolute; width: 2px; height: 2px;
+        background: linear-gradient(to right, #fff, transparent);
+        box-shadow: 0 0 10px #fff; z-index: 2;
+        animation: meteor-anim 3s linear infinite;
+    }
+    @keyframes meteor-anim {
+        0% { transform: rotate(-35deg) translateX(0); opacity: 0; }
+        10% { opacity: 1; }
+        100% { transform: rotate(-35deg) translateX(-1000px); opacity: 0; }
+    }
+
+    /* 3. 其他元素保持并优化 */
     #snowCanvas{ position:absolute; inset:0; z-index:1; pointer-events:none; }
     .mainTree{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:min(60vw,60vh); z-index:3; cursor:pointer; animation:sway 4s ease-in-out infinite; }
     @keyframes sway{ 0%,100%{transform:translate(-50%,-50%) rotate(-1deg);} 50%{transform:translate(-50%,-50%) rotate(1deg);} }
-    .bottomText{ position:absolute; bottom:10%; width:100%; text-align:center; color:#fff; z-index:4; text-shadow:0 0 12px rgba(255,255,255,.8); font-family:cursive; }
-    .title{ font-size:7vw; } .name{ font-size:6vw; margin-top:1vh; }
-    .from{ position:absolute; bottom:2%; right:4%; font-size:4vw; color:rgba(255,255,255,.85); z-index:4; }
-    /* 唯美小贴士 */
-    .tip{ position:absolute; max-width:44vw; padding:10px 16px; background:rgba(255,255,255,.18); border-radius:18px; backdrop-filter:blur(6px); color:#fff; font-size:4vw; opacity:0; transform:translate(-50%,-50%); transition:all 1s ease; z-index:4; }
-    .tip.show{ opacity:1; transform:translate(-50%,-55%) scale(1.1); }
-    /* 告白弹窗 */
-    .love{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.7); z-index:10; opacity:0; pointer-events:none; transition:opacity .8s ease; }
+    .bottomText{ position:absolute; bottom:10%; width:100%; text-align:center; color:#fff; z-index:4; text-shadow:0 0 12px rgba(255,255,255,.8); }
+    .from{ position:absolute; bottom:2%; right:4%; font-size:14px; color:rgba(255,255,255,0.7); z-index:4; }
+    .tip{ position:absolute; padding:10px 16px; background:rgba(255,255,255,.15); border-radius:18px; backdrop-filter:blur(5px); color:#fff; font-size:14px; opacity:0; transition:all 1s ease; z-index:4; pointer-events:none; }
+    .tip.show{ opacity:1; transform:translate(-50%,-50%) scale(1.1); }
+    .love{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.7); z-index:10; opacity:0; pointer-events:none; transition:opacity 0.8s ease; }
     .love.show{ opacity:1; pointer-events:auto; }
-    .loveBox{ padding:30px 36px; background:rgba(255,255,255,.15); border-radius:24px; color:#fff; font-size:6vw; text-align:center; backdrop-filter:blur(8px); animation:heartbeat 1.6s infinite; }
+    .loveBox{ padding:30px 36px; background:rgba(255,255,255,.15); border-radius:24px; color:#fff; font-size:24px; text-align:center; backdrop-filter:blur(8px); animation:heartbeat 1.6s infinite; }
     @keyframes heartbeat{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.1);} }
-    /* 强制点击层：解决自动播放限制 */
-    #overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:99; display:flex; align-items:center; justify-content:center; color:#fff; font-size:5vw; cursor:pointer; }
+    .particle { position: fixed; pointer-events: none; z-index: 99; transition: all 1s ease-out; }
 </style>
 </head>
 <body>
 
-<div id="overlay">🎄 点击开启圣诞惊喜 ❄️</div>
+<div id="envelope-wrapper" onclick="openEnvelope()">
+    <div class="envelope">✉️</div>
+    <div class="envelope-tip">涵宝亲启</div>
+</div>
 
-<div class="scene">
+<div class="scene" id="mainScene">
     <canvas id="snowCanvas"></canvas>
     <div class="mainTree" id="tree">🎄</div>
     <div class="bottomText">
-        <div class="title">Merry Christmas</div>
-        <div class="name">涵宝</div>
+        <div style="font-size: 28px;">Merry Christmas</div>
+        <div style="font-size: 24px; margin-top: 10px;">涵宝</div>
     </div>
     <div class="from">From TQF</div>
 </div>
@@ -49,40 +76,88 @@
 
 <script>
     const bgm = document.getElementById('bgm');
-    const overlay = document.getElementById('overlay');
+    const envelope = document.getElementById('envelope-wrapper');
+    const scene = document.getElementById('mainScene');
     const tree = document.getElementById('tree');
     const love = document.getElementById('love');
 
-    // 解决“固定开启”：通过一个全屏遮罩强迫用户点一下，点完立刻播音乐
-    overlay.onclick = function() {
+    // 1. 开场逻辑：点击信封启动一切
+    function openEnvelope() {
         bgm.play();
-        overlay.style.display = 'none';
-    };
+        envelope.style.opacity = '0';
+        setTimeout(() => {
+            envelope.style.display = 'none';
+            scene.style.display = 'block';
+            createStars(); // 创建背景装饰星
+            startMeteors(); // 开启流星
+        }, 1500);
+    }
 
-    tree.onclick = () => {
-        bgm.play(); // 双重保险
+    // 2. 点击圣诞树：播放音乐 + 表白 + 星星粒子特效
+    tree.onclick = (e) => {
+        bgm.play(); 
         love.classList.add('show');
+        // 爆发粒子特效
+        for(let i=0; i<12; i++) {
+            createParticle(e.clientX, e.clientY);
+        }
         setTimeout(() => love.classList.remove('show'), 4000);
     };
 
-    /* ===== 唯美雪花逻辑（不再是单纯的圆点） ===== */
+    function createParticle(x, y) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.innerText = ['✨','⭐','🌟','❄️'][Math.floor(Math.random()*4)];
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        document.body.appendChild(p);
+        const tx = (Math.random() - 0.5) * 300;
+        const ty = (Math.random() - 0.5) * 300;
+        requestAnimationFrame(() => {
+            p.style.transform = `translate(${tx}px, ${ty}px) scale(0) rotate(360deg)`;
+            p.style.opacity = '0';
+        });
+        setTimeout(() => p.remove(), 1000);
+    }
+
+    // 3. 唯美流星逻辑
+    function startMeteors() {
+        setInterval(() => {
+            const m = document.createElement('div');
+            m.className = 'meteor';
+            m.style.top = Math.random() * 40 + '%';
+            m.style.left = '100%';
+            scene.appendChild(m);
+            setTimeout(() => m.remove(), 3000);
+        }, 6000);
+    }
+
+    function createStars() {
+        for(let i=0; i<50; i++) {
+            const s = document.createElement('div');
+            s.className = 'star';
+            s.style.width = s.style.height = Math.random()*3+'px';
+            s.style.left = Math.random()*100+'%';
+            s.style.top = Math.random()*60+'%';
+            scene.appendChild(s);
+        }
+    }
+
+    // 4. 雪花美化逻辑
     const canvas = document.getElementById("snowCanvas");
     const ctx = canvas.getContext("2d");
     function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
     resize(); window.onresize = resize;
 
     class Snow {
-        constructor() {
-            this.reset();
-            this.y = Math.random() * canvas.height;
-        }
+        constructor() { this.reset(); this.y = Math.random() * canvas.height; }
         reset() {
             this.x = Math.random() * canvas.width;
             this.y = -20;
-            this.size = Math.random() * 3 + 2; // 随机大小
-            this.speed = Math.random() * 1 + 0.5; // 随机速度
-            this.velX = (Math.random() - 0.5) * 1; // 左右摆动
-            this.opacity = Math.random() * 0.5 + 0.3;
+            this.size = Math.random() * 3 + 2;
+            this.speed = Math.random() * 0.8 + 0.5;
+            this.velX = (Math.random() - 0.5) * 0.5;
+            this.opacity = Math.random() * 0.4 + 0.3;
         }
         update() {
             this.y += this.speed;
@@ -90,19 +165,17 @@
             if (this.y > canvas.height) this.reset();
         }
         draw() {
-            // 使用径向渐变模拟雪花的朦胧感
             ctx.beginPath();
-            const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
-            gradient.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`);
-            gradient.addColorStop(0.8, `rgba(255, 255, 255, ${this.opacity * 0.4})`);
-            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            ctx.fillStyle = gradient;
+            const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+            g.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`);
+            g.addColorStop(0.8, `rgba(255, 255, 255, ${this.opacity * 0.3})`);
+            g.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = g;
             ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
             ctx.fill();
         }
     }
-
-    const snows = Array.from({ length: 120 }, () => new Snow());
+    const snows = Array.from({ length: 100 }, () => new Snow());
     function anim() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         snows.forEach(s => { s.update(); s.draw(); });
@@ -110,18 +183,19 @@
     }
     anim();
 
-    /* 小贴士逻辑 */
-    const tips = ["天冷记得多穿一点 ☃️", "不开心的时候想想我 💗", "记得按时吃饭 🍰", "希望这个冬天我能陪你 ✨", "我给你暖手手 🔥", "你永远值得被爱 💝"];
+    // 5. 飘浮贴士
+    const tips = ["天冷多穿点 ☃️", "不开心想想我 💗", "按时吃饭 🍰", "冬天我陪你 ✨", "手给你暖 🔥", "爱你 💝"];
     setInterval(() => {
+        if(scene.style.display === 'none') return;
         const tip = document.createElement("div");
         tip.className = "tip";
         tip.innerText = tips[Math.floor(Math.random()*tips.length)];
-        document.body.appendChild(tip);
+        scene.appendChild(tip);
         tip.style.left = (Math.random() * 60 + 20) + "%";
         tip.style.top = (Math.random() * 50 + 20) + "%";
         setTimeout(() => tip.classList.add("show"), 100);
         setTimeout(() => { tip.classList.remove("show"); setTimeout(()=>tip.remove(), 1000); }, 3000);
-    }, 4000);
+    }, 4500);
 </script>
 </body>
 </html>
