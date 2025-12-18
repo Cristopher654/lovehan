@@ -6,9 +6,9 @@
 <title>Merry Christmas</title>
 <style>
     html,body{ margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#000; font-family:cursive; }
-    .scene{ position:relative; width:100vw; height:100vh; background:radial-gradient(circle at top,#001b33,#000); overflow:hidden; display:none; } /* 初始隐藏，点信封后显示 */
+    .scene{ position:relative; width:100vw; height:100vh; background:radial-gradient(circle at top,#001b33,#000); overflow:hidden; display:none; }
     
-    /* 1. 信封开场仪式感 */
+    /* 1. 信封开场 */
     #envelope-wrapper {
         position: fixed; inset: 0; background: #000; z-index: 100;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -18,10 +18,22 @@
     .envelope-tip { color: #fff; margin-top: 20px; font-size: 18px; letter-spacing: 2px; opacity: 0.8; }
     @keyframes floating { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
 
-    /* 2. 流星背景 */
-    .star {
-        position: absolute; background: white; border-radius: 50%; opacity: 0.3;
+    /* 2. 切歌按钮样式 */
+    #music-switch {
+        position: fixed; top: 20px; right: 20px; z-index: 101;
+        width: 44px; height: 44px; background: rgba(255,255,255,0.2);
+        border-radius: 50%; display: none; /* 初始隐藏，开信后显示 */
+        align-items: center; justify-content: center;
+        color: white; font-size: 20px; cursor: pointer;
+        backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.3);
+        transition: transform 0.3s ease;
     }
+    #music-switch:active { transform: scale(0.9); }
+    .rotating { animation: rotateMusic 3s linear infinite; }
+    @keyframes rotateMusic { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* 3. 背景流星与星空 */
+    .star { position: absolute; background: white; border-radius: 50%; opacity: 0.3; }
     .meteor {
         position: absolute; width: 2px; height: 2px;
         background: linear-gradient(to right, #fff, transparent);
@@ -34,7 +46,7 @@
         100% { transform: rotate(-35deg) translateX(-1000px); opacity: 0; }
     }
 
-    /* 3. 其他元素保持并优化 */
+    /* 4. 树与文字 */
     #snowCanvas{ position:absolute; inset:0; z-index:1; pointer-events:none; }
     .mainTree{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:min(60vw,60vh); z-index:3; cursor:pointer; animation:sway 4s ease-in-out infinite; }
     @keyframes sway{ 0%,100%{transform:translate(-50%,-50%) rotate(-1deg);} 50%{transform:translate(-50%,-50%) rotate(1deg);} }
@@ -44,8 +56,7 @@
     .tip.show{ opacity:1; transform:translate(-50%,-50%) scale(1.1); }
     .love{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.7); z-index:10; opacity:0; pointer-events:none; transition:opacity 0.8s ease; }
     .love.show{ opacity:1; pointer-events:auto; }
-    .loveBox{ padding:30px 36px; background:rgba(255,255,255,.15); border-radius:24px; color:#fff; font-size:24px; text-align:center; backdrop-filter:blur(8px); animation:heartbeat 1.6s infinite; }
-    @keyframes heartbeat{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.1);} }
+    .loveBox{ padding:30px 36px; background:rgba(255,255,255,.15); border-radius:24px; color:#fff; font-size:24px; text-align:center; backdrop-filter:blur(8px); }
     .particle { position: fixed; pointer-events: none; z-index: 99; transition: all 1s ease-out; }
 </style>
 </head>
@@ -55,6 +66,8 @@
     <div class="envelope">✉️</div>
     <div class="envelope-tip">涵宝亲启</div>
 </div>
+
+<div id="music-switch" onclick="switchMusic(event)">🎵</div>
 
 <div class="scene" id="mainScene">
     <canvas id="snowCanvas"></canvas>
@@ -71,36 +84,57 @@
 </div>
 
 <audio id="bgm" loop preload="auto">
-    <source src="bgm.mp3" type="audio/mpeg">
+    <source id="audio-source" src="bgm1.mp3" type="audio/mpeg">
 </audio>
 
 <script>
     const bgm = document.getElementById('bgm');
+    const source = document.getElementById('audio-source');
+    const musicBtn = document.getElementById('music-switch');
     const envelope = document.getElementById('envelope-wrapper');
     const scene = document.getElementById('mainScene');
     const tree = document.getElementById('tree');
     const love = document.getElementById('love');
 
-    // 1. 开场逻辑：点击信封启动一切
+    let currentBgm = 1; // 记录当前是哪首歌
+
+    // 1. 开场逻辑
     function openEnvelope() {
-        bgm.play();
+        bgm.play().catch(e => console.log("等待交互"));
         envelope.style.opacity = '0';
         setTimeout(() => {
             envelope.style.display = 'none';
             scene.style.display = 'block';
-            createStars(); // 创建背景装饰星
-            startMeteors(); // 开启流星
+            musicBtn.style.display = 'flex';
+            musicBtn.classList.add('rotating');
+            createStars();
+            startMeteors();
         }, 1500);
     }
 
-    // 2. 点击圣诞树：播放音乐 + 表白 + 星星粒子特效
-    tree.onclick = (e) => {
-        bgm.play(); 
-        love.classList.add('show');
-        // 爆发粒子特效
-        for(let i=0; i<12; i++) {
-            createParticle(e.clientX, e.clientY);
+    // 2. 切歌逻辑
+    function switchMusic(event) {
+        event.stopPropagation(); // 防止触发背景点击
+        currentBgm = currentBgm === 1 ? 2 : 1;
+        const wasPlaying = !bgm.paused;
+        
+        source.src = `bgm${currentBgm}.mp3`;
+        bgm.load(); // 重新加载新音源
+        
+        if (wasPlaying) {
+            bgm.play();
         }
+
+        // 切换反馈：按钮闪烁一下
+        musicBtn.style.background = 'rgba(255,255,255,0.5)';
+        setTimeout(() => musicBtn.style.background = 'rgba(255,255,255,0.2)', 200);
+    }
+
+    // 3. 点击圣诞树特效
+    tree.onclick = (e) => {
+        bgm.play(); // 再次确保播放
+        love.classList.add('show');
+        for(let i=0; i<12; i++) { createParticle(e.clientX, e.clientY); }
         setTimeout(() => love.classList.remove('show'), 4000);
     };
 
@@ -108,8 +142,7 @@
         const p = document.createElement('div');
         p.className = 'particle';
         p.innerText = ['✨','⭐','🌟','❄️'][Math.floor(Math.random()*4)];
-        p.style.left = x + 'px';
-        p.style.top = y + 'px';
+        p.style.left = x + 'px'; p.style.top = y + 'px';
         document.body.appendChild(p);
         const tx = (Math.random() - 0.5) * 300;
         const ty = (Math.random() - 0.5) * 300;
@@ -120,7 +153,7 @@
         setTimeout(() => p.remove(), 1000);
     }
 
-    // 3. 唯美流星逻辑
+    // 4. 背景与雪花逻辑 (保持高性能美化版)
     function startMeteors() {
         setInterval(() => {
             const m = document.createElement('div');
@@ -129,7 +162,7 @@
             m.style.left = '100%';
             scene.appendChild(m);
             setTimeout(() => m.remove(), 3000);
-        }, 6000);
+        }, 8000);
     }
 
     function createStars() {
@@ -143,7 +176,6 @@
         }
     }
 
-    // 4. 雪花美化逻辑
     const canvas = document.getElementById("snowCanvas");
     const ctx = canvas.getContext("2d");
     function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
@@ -152,27 +184,20 @@
     class Snow {
         constructor() { this.reset(); this.y = Math.random() * canvas.height; }
         reset() {
-            this.x = Math.random() * canvas.width;
-            this.y = -20;
+            this.x = Math.random() * canvas.width; this.y = -20;
             this.size = Math.random() * 3 + 2;
             this.speed = Math.random() * 0.8 + 0.5;
             this.velX = (Math.random() - 0.5) * 0.5;
             this.opacity = Math.random() * 0.4 + 0.3;
         }
-        update() {
-            this.y += this.speed;
-            this.x += this.velX;
-            if (this.y > canvas.height) this.reset();
-        }
+        update() { this.y += this.speed; this.x += this.velX; if (this.y > canvas.height) this.reset(); }
         draw() {
             ctx.beginPath();
             const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
             g.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`);
             g.addColorStop(0.8, `rgba(255, 255, 255, ${this.opacity * 0.3})`);
             g.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            ctx.fillStyle = g;
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillStyle = g; ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
         }
     }
     const snows = Array.from({ length: 100 }, () => new Snow());
