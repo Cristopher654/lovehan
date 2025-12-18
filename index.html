@@ -110,12 +110,13 @@ html,body{
 }
 .loveBox{
     padding:30px 36px;
-    background:rgba(255,255,255,.15);
+    background:rgba(255,255,255,0.2);
     border-radius:24px;
     color:#fff;
     font-size:6vw;
     text-align:center;
-    backdrop-filter:blur(8px);
+    backdrop-filter:blur(10px);
+    box-shadow: 0 0 20px rgba(255,105,180,0.5);
     animation:heartbeat 1.6s infinite;
 }
 @keyframes heartbeat{
@@ -130,7 +131,7 @@ html,body{
     left:50%;
     transform:translateX(-50%);
     padding:10px 18px;
-    background:rgba(255,255,255,.18);
+    background:rgba(255,255,255,.2);
     border-radius:20px;
     color:#fff;
     font-size:4vw;
@@ -154,11 +155,10 @@ html,body{
 </style>
 </head>
 
-<body>
-<div class="scene">
+<body onclick="startMusic()"> <div class="scene">
     <canvas id="snowCanvas"></canvas>
 
-    <div class="mainTree">🎄</div>
+    <div class="mainTree" id="mainTree">🎄</div>
 
     <div class="bottomText">
         <div class="title">Merry Christmas</div>
@@ -167,21 +167,19 @@ html,body{
 
     <div class="from">From TQF</div>
 
-    <div class="musicHint" id="musicHint">🎵</div>
+    <div class="musicHint" id="musicHint">点击开启音乐 🎵</div>
 </div>
 
-<!-- 告白 -->
 <div class="love" id="love">
     <div class="loveBox">梁诗涵<br>我喜欢你 💖</div>
 </div>
 
-<!-- 🎶 音乐 -->
-<audio id="bgm" loop>
+<audio id="bgm" loop preload="auto">
     <source src="https://cdn.pixabay.com/audio/2022/10/26/audio_8e6b5a4c55.mp3" type="audio/mpeg">
 </audio>
 
 <script>
-/* ===== 雪花 ===== */
+/* ===== 雪花逻辑保持不变 ===== */
 const canvas=document.getElementById("snowCanvas");
 const ctx=canvas.getContext("2d");
 function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
@@ -210,7 +208,7 @@ const snows=Array.from({length:160},()=>new Snow());
     requestAnimationFrame(anim);
 })();
 
-/* ===== 小贴士 ===== */
+/* ===== 小贴士逻辑保持不变 ===== */
 const tips=[
 "天冷记得多穿一点 ☃️",
 "不开心的时候想想我 💗",
@@ -221,7 +219,7 @@ const tips=[
 "热奶茶小心烫 ☕️",
 "你永远值得被爱 💝"
 ];
-const tree=document.querySelector(".mainTree");
+const tree=document.getElementById("mainTree");
 let i=0;
 
 function aroundTree(){
@@ -249,21 +247,31 @@ setInterval(()=>{
     i++;
 },3000);
 
-/* ===== 音乐（已修复） ===== */
+/* ===== 增强版音乐播放逻辑 ===== */
 const bgm=document.getElementById("bgm");
 const hint=document.getElementById("musicHint");
+let isPlaying = false;
 
 function startMusic(){
+    if(isPlaying) return;
     bgm.play().then(()=>{
+        isPlaying = true;
         hint.style.display="none";
-    }).catch(()=>{});
+    }).catch((err)=>{
+        console.log("等待用户交互以播放音乐");
+    });
 }
 
-hint.addEventListener("click",startMusic);
+// 监听更多交互
+hint.addEventListener("click", (e) => {
+    e.stopPropagation();
+    startMusic();
+});
 
-/* ===== 告白 ===== */
+/* ===== 告白逻辑 ===== */
 const love=document.getElementById("love");
-tree.onclick=()=>{
+tree.onclick=(e)=>{
+    e.stopPropagation();
     startMusic();
     love.classList.add("show");
     setTimeout(()=>love.classList.remove("show"),3500);
